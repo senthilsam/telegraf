@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"strings"
 	"time"
 
 	"github.com/blues/jsonata-go"
@@ -52,6 +53,33 @@ func (s *Serializer) Init() error {
 	}
 
 	return nil
+}
+
+// func transformPathsToNestedJSON(obj interface{}) interface{} {
+// switch o := obj.(type) {
+// case map[string]interface{}:
+// result := make(map[string]interface{})
+// for k, v := range o {
+// addPathKeyAsNestedField(result, strings.Split(k, "/"), v)
+// }
+// return result
+// default:
+// return obj
+// }
+// }
+
+func addPathKeyAsNestedField(m map[string]interface{}, keys []string,
+	value interface{}) {
+	if len(keys) == 1 {
+		m[keys[0]] = value
+		return
+	}
+
+	if _, ok := m[keys[0]]; !ok {
+		m[keys[0]] = make(map[string]interface{})
+	}
+
+	addPathKeyAsNestedField(m[keys[0]].(map[string]interface{}), keys[1:], value)
 }
 
 func (s *Serializer) Serialize(metric telegraf.Metric) ([]byte, error) {
@@ -138,8 +166,10 @@ func (s *Serializer) createObject(metric telegraf.Metric) map[string]interface{}
 				}
 			}
 		}
-		fields[field.Key] = val
+		addPathKeyAsNestedField(fields, strings.Split(field.Key, "/"), val)
+		// fields[field.Key] = val
 	}
+	// m["fields"] = transformPathsToNestedJSON(fields)
 	m["fields"] = fields
 
 	m["name"] = metric.Name()
