@@ -143,29 +143,29 @@ func flatten(nested interface{}) []keyValuePair {
 	case []interface{}:
 		allNonNested := true
 		for _, child := range n {
-			switch child.(type){
-			case map[string] interface {}, []interface {}:
+			switch child.(type) {
+			case map[string]interface{}, []interface{}:
 				allNonNested = false
 				break
 			}
 		}
 		if allNonNested {
-			var strArray := []string
+			var strArray []string
 			for _, v := range n {
-				strArray = append(strArray, fmt.sprintf("%v", v))
+				strArray = append(strArray, fmt.Sprintf("%v", v))
 			}
-			values = append(values, keyValuePair{value: fmt.sprintf("[%s]", strings.Join(strArray, ", ")) })
-		}else{
-		for i, child := range n {
-			k := strconv.Itoa(i)
-			for _, c := range flatten(child) {
-				values = append(values, keyValuePair{
-					key:   append([]string{k}, c.key...),
-					value: c.value,
-				})
+			values = append(values, keyValuePair{value: fmt.Sprintf("[%s]", strings.Join(strArray, ", "))})
+		} else {
+			for i, child := range n {
+				k := strconv.Itoa(i)
+				for _, c := range flatten(child) {
+					values = append(values, keyValuePair{
+						key:   append([]string{k}, c.key...),
+						value: c.value,
+					})
+				}
 			}
 		}
-	}
 	default:
 		values = append(values, keyValuePair{value: n})
 	}
