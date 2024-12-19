@@ -146,6 +146,9 @@ func flatten(nested interface{}) []keyValuePair {
 			switch child.(type) {
 			case map[string]interface{}, []interface{}:
 				allNonNested = false
+			}
+
+			if !allNonNested {
 				break
 			}
 		}

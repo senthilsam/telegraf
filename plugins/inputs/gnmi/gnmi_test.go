@@ -81,10 +81,12 @@ func TestWaitError(t *testing.T) {
 	gnmi.RegisterGNMIServer(grpcServer, gnmiServer)
 
 	plugin := &GNMI{
-		Log:       testutil.Logger{},
-		Addresses: []string{listener.Addr().String()},
-		Encoding:  "proto",
-		Redial:    config.Duration(1 * time.Second),
+		SharedConfig: SharedConfig{
+			Log:       testutil.Logger{},
+			Addresses: []string{listener.Addr().String()},
+			Encoding:  "proto",
+			Redial:    config.Duration(1 * time.Second),
+		},
 	}
 
 	var acc testutil.Accumulator
@@ -139,12 +141,13 @@ func TestUsernamePassword(t *testing.T) {
 	gnmi.RegisterGNMIServer(grpcServer, gnmiServer)
 
 	plugin := &GNMI{
-		Log:       testutil.Logger{},
-		Addresses: []string{listener.Addr().String()},
-		Username:  config.NewSecret([]byte("theusername")),
-		Password:  config.NewSecret([]byte("thepassword")),
-		Encoding:  "proto",
-		Redial:    config.Duration(1 * time.Second),
+		SharedConfig: SharedConfig{
+			Log:       testutil.Logger{},
+			Addresses: []string{listener.Addr().String()},
+			Username:  config.NewSecret([]byte("theusername")),
+			Password:  config.NewSecret([]byte("thepassword")),
+			Encoding:  "proto",
+			Redial:    config.Duration(1 * time.Second)},
 	}
 
 	var acc testutil.Accumulator
@@ -227,17 +230,18 @@ func TestNotification(t *testing.T) {
 		{
 			name: "multiple metrics",
 			plugin: &GNMI{
-				Log:      testutil.Logger{},
-				Encoding: "proto",
-				Redial:   config.Duration(1 * time.Second),
-				Subscriptions: []subscription{
-					{
-						Name:             "alias",
-						Origin:           "type",
-						Path:             "/model",
-						SubscriptionMode: "sample",
-					},
-				},
+				SharedConfig: SharedConfig{
+					Log:      testutil.Logger{},
+					Encoding: "proto",
+					Redial:   config.Duration(1 * time.Second),
+					Subscriptions: []subscription{
+						{
+							Name:             "alias",
+							Origin:           "type",
+							Path:             "/model",
+							SubscriptionMode: "sample",
+						},
+					}},
 			},
 			server: &mockServer{
 				subscribeF: func(server gnmi.GNMI_SubscribeServer) error {
@@ -316,15 +320,17 @@ func TestNotification(t *testing.T) {
 		{
 			name: "full path field key",
 			plugin: &GNMI{
-				Log:      testutil.Logger{},
-				Encoding: "proto",
-				Redial:   config.Duration(1 * time.Second),
-				Subscriptions: []subscription{
-					{
-						Name:             "PHY_COUNTERS",
-						Origin:           "type",
-						Path:             "/state/port[port-id=*]/ethernet/oper-speed",
-						SubscriptionMode: "sample",
+				SharedConfig: SharedConfig{
+					Log:      testutil.Logger{},
+					Encoding: "proto",
+					Redial:   config.Duration(1 * time.Second),
+					Subscriptions: []subscription{
+						{
+							Name:             "PHY_COUNTERS",
+							Origin:           "type",
+							Path:             "/state/port[port-id=*]/ethernet/oper-speed",
+							SubscriptionMode: "sample",
+						},
 					},
 				},
 			},
@@ -385,22 +391,24 @@ func TestNotification(t *testing.T) {
 		{
 			name: "legacy tagged update pair",
 			plugin: &GNMI{
-				Log:      testutil.Logger{},
-				Encoding: "proto",
-				Redial:   config.Duration(1 * time.Second),
-				Subscriptions: []subscription{
-					{
-						Name:             "oc-intf-desc",
-						Origin:           "openconfig-interfaces",
-						Path:             "/interfaces/interface/state/description",
-						SubscriptionMode: "on_change",
-						TagOnly:          true,
-					},
-					{
-						Name:             "oc-intf-counters",
-						Origin:           "openconfig-interfaces",
-						Path:             "/interfaces/interface/state/counters",
-						SubscriptionMode: "sample",
+				SharedConfig: SharedConfig{
+					Log:      testutil.Logger{},
+					Encoding: "proto",
+					Redial:   config.Duration(1 * time.Second),
+					Subscriptions: []subscription{
+						{
+							Name:             "oc-intf-desc",
+							Origin:           "openconfig-interfaces",
+							Path:             "/interfaces/interface/state/description",
+							SubscriptionMode: "on_change",
+							TagOnly:          true,
+						},
+						{
+							Name:             "oc-intf-counters",
+							Origin:           "openconfig-interfaces",
+							Path:             "/interfaces/interface/state/counters",
+							SubscriptionMode: "sample",
+						},
 					},
 				},
 			},
@@ -504,26 +512,29 @@ func TestNotification(t *testing.T) {
 		{
 			name: "issue #11011",
 			plugin: &GNMI{
-				Log:      testutil.Logger{},
-				Encoding: "proto",
-				Redial:   config.Duration(1 * time.Second),
-				TagSubscriptions: []tagSubscription{
-					{
-						subscription: subscription{
-							Name:             "oc-neigh-desc",
+				SharedConfig: SharedConfig{
+					Log:      testutil.Logger{},
+					Encoding: "proto",
+					Redial:   config.Duration(1 * time.Second),
+					TagSubscriptions: []tagSubscription{
+						{
+							subscription: subscription{
+								Name:             "oc-neigh-desc",
+								Origin:           "openconfig",
+								Path:             "/network-instances/network-instance/protocols/protocol/bgp/neighbors/neighbor/state/description",
+								SubscriptionMode: "on_change",
+							},
+							Elements: []string{"network-instance", "protocol", "neighbor"},
+						},
+					},
+
+					Subscriptions: []subscription{
+						{
+							Name:             "oc-neigh-state",
 							Origin:           "openconfig",
-							Path:             "/network-instances/network-instance/protocols/protocol/bgp/neighbors/neighbor/state/description",
+							Path:             "/network-instances/network-instance/protocols/protocol/bgp/neighbors/neighbor/state/session-state",
 							SubscriptionMode: "on_change",
 						},
-						Elements: []string{"network-instance", "protocol", "neighbor"},
-					},
-				},
-				Subscriptions: []subscription{
-					{
-						Name:             "oc-neigh-state",
-						Origin:           "openconfig",
-						Path:             "/network-instances/network-instance/protocols/protocol/bgp/neighbors/neighbor/state/session-state",
-						SubscriptionMode: "on_change",
 					},
 				},
 			},
@@ -662,16 +673,18 @@ func TestNotification(t *testing.T) {
 		{
 			name: "issue #12257 Arista",
 			plugin: &GNMI{
-				Log:      testutil.Logger{},
-				Encoding: "proto",
-				Redial:   config.Duration(1 * time.Second),
-				Subscriptions: []subscription{
-					{
-						Name:             "interfaces",
-						Origin:           "openconfig",
-						Path:             "/interfaces/interface/state/counters",
-						SubscriptionMode: "sample",
-						SampleInterval:   config.Duration(1 * time.Second),
+				SharedConfig: SharedConfig{
+					Log:      testutil.Logger{},
+					Encoding: "proto",
+					Redial:   config.Duration(1 * time.Second),
+					Subscriptions: []subscription{
+						{
+							Name:             "interfaces",
+							Origin:           "openconfig",
+							Path:             "/interfaces/interface/state/counters",
+							SubscriptionMode: "sample",
+							SampleInterval:   config.Duration(1 * time.Second),
+						},
 					},
 				},
 			},
@@ -779,19 +792,20 @@ func TestNotification(t *testing.T) {
 		{
 			name: "issue #12257 Sonic",
 			plugin: &GNMI{
-				Log:      testutil.Logger{},
-				Encoding: "proto",
-				Redial:   config.Duration(1 * time.Second),
-				Subscriptions: []subscription{
-					{
-						Name:             "temperature",
-						Origin:           "openconfig-platform",
-						Path:             "/components/component[name=TEMP 1]/state",
-						SubscriptionMode: "sample",
-						SampleInterval:   config.Duration(1 * time.Second),
+				SharedConfig: SharedConfig{
+					Log:      testutil.Logger{},
+					Encoding: "proto",
+					Redial:   config.Duration(1 * time.Second),
+					Subscriptions: []subscription{
+						{
+							Name:             "temperature",
+							Origin:           "openconfig-platform",
+							Path:             "/components/component[name=TEMP 1]/state",
+							SubscriptionMode: "sample",
+							SampleInterval:   config.Duration(1 * time.Second),
+						},
 					},
-				},
-			},
+				}},
 			server: &mockServer{
 				subscribeF: func(server gnmi.GNMI_SubscribeServer) error {
 					if err := server.Send(&gnmi.SubscribeResponse{Response: &gnmi.SubscribeResponse_SyncResponse{SyncResponse: true}}); err != nil {
@@ -910,17 +924,19 @@ func TestNotification(t *testing.T) {
 		{
 			name: "Juniper Extension",
 			plugin: &GNMI{
-				Log:            testutil.Logger{},
-				Encoding:       "proto",
-				VendorSpecific: []string{"juniper_header"},
-				Redial:         config.Duration(1 * time.Second),
-				Subscriptions: []subscription{
-					{
-						Name:             "type",
-						Origin:           "openconfig-platform",
-						Path:             "/components/component[name=CHASSIS0:FPC0]/state",
-						SubscriptionMode: "sample",
-						SampleInterval:   config.Duration(1 * time.Second),
+				SharedConfig: SharedConfig{
+					Log:            testutil.Logger{},
+					Encoding:       "proto",
+					VendorSpecific: []string{"juniper_header"},
+					Redial:         config.Duration(1 * time.Second),
+					Subscriptions: []subscription{
+						{
+							Name:             "type",
+							Origin:           "openconfig-platform",
+							Path:             "/components/component[name=CHASSIS0:FPC0]/state",
+							SubscriptionMode: "sample",
+							SampleInterval:   config.Duration(1 * time.Second),
+						},
 					},
 				},
 			},
@@ -1034,11 +1050,12 @@ func TestRedial(t *testing.T) {
 	require.NoError(t, err)
 
 	plugin := &GNMI{
-		Log:       testutil.Logger{},
-		Addresses: []string{listener.Addr().String()},
-		Encoding:  "proto",
-		Redial:    config.Duration(10 * time.Millisecond),
-		Aliases:   map[string]string{"dummy": "type:/model"},
+		SharedConfig: SharedConfig{
+			Log:       testutil.Logger{},
+			Addresses: []string{listener.Addr().String()},
+			Encoding:  "proto",
+			Redial:    config.Duration(10 * time.Millisecond),
+			Aliases:   map[string]string{"dummy": "type:/model"}},
 	}
 
 	grpcServer := grpc.NewServer()

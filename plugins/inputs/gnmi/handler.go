@@ -49,6 +49,7 @@ type handler struct {
 	decoder             *yangmodel.Decoder
 	log                 telegraf.Logger
 	keepalive.ClientParameters
+	configInjSrv ConfigInjectorService
 }
 
 // SubscribeGNMI and extract telemetry data
@@ -224,8 +225,24 @@ func (h *handler) handleSubscribeResponseUpdate(acc telegraf.Accumulator, respon
 		}
 
 		// Prepare tags from prefix
+
 		fieldTags := field.path.tags(h.tagPathPrefix)
-		tags := make(map[string]string, len(headerTags)+len(fieldTags))
+		var tags map[string]string
+		if h.configInjSrv != nil {
+			dt, err := h.configInjSrv.GetTags(h.host)
+
+			if err == nil {
+				tags = make(map[string]string, len(headerTags)+len(fieldTags)+len(dt))
+				for key, val := range dt {
+					tags[key] = val
+				}
+
+			} else {
+				tags = make(map[string]string, len(headerTags)+len(fieldTags))
+			}
+		} else {
+			tags = make(map[string]string, len(headerTags)+len(fieldTags))
+		}
 		for key, val := range headerTags {
 			tags[key] = val
 		}
