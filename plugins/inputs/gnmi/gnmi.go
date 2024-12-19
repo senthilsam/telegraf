@@ -39,49 +39,72 @@ including your device model and the following response data:
 %+v
 This message is only printed once.`
 
-type GNMI struct {
+type SharedConfig struct {
 	Addresses            []string          `toml:"addresses"`
 	Subscriptions        []subscription    `toml:"subscription"`
 	TagSubscriptions     []tagSubscription `toml:"tag_subscription"`
-	Aliases              map[string]string `toml:"aliases"`
-	Encoding             string            `toml:"encoding"`
-	Origin               string            `toml:"origin"`
-	Prefix               string            `toml:"prefix"`
-	Target               string            `toml:"target"`
-	UpdatesOnly          bool              `toml:"updates_only"`
-	VendorSpecific       []string          `toml:"vendor_specific"`
-	Username             config.Secret     `toml:"username"`
-	Password             config.Secret     `toml:"password"`
-	Redial               config.Duration   `toml:"redial"`
-	MaxMsgSize           config.Size       `toml:"max_msg_size"`
-	Trace                bool              `toml:"dump_responses"`
-	CanonicalFieldNames  bool              `toml:"canonical_field_names"`
-	TrimFieldNames       bool              `toml:"trim_field_names"`
-	PrefixTagKeyWithPath bool              `toml:"prefix_tag_key_with_path"`
+	Aliases              map[string]string `toml:"aliases" json:"aliases"`
+	Encoding             string            `toml:"encoding" json:"encoding"`
+	Origin               string            `toml:"origin" json:"origin"`
+	Prefix               string            `toml:"prefix" json:"prefix"`
+	Target               string            `toml:"target" json:"target"`
+	UpdatesOnly          bool              `toml:"updates_only" json:"updates_only"`
+	VendorSpecific       []string          `toml:"vendor_specific" json:"vendor_specific"`
+	Username             config.Secret     `toml:"username" json:"username"`
+	Password             config.Secret     `toml:"password" json:"password"`
+	Redial               config.Duration   `toml:"redial" json:"redial"`
+	MaxMsgSize           config.Size       `toml:"max_msg_size" json:"max_msg_size"`
+	Trace                bool              `toml:"dump_responses" json:"dump_responses"`
+	CanonicalFieldNames  bool              `toml:"canonical_field_names" json:"canonical_field_names"`
+	TrimFieldNames       bool              `toml:"trim_field_names" json:"trim_field_names"`
+	PrefixTagKeyWithPath bool              `toml:"prefix_tag_key_with_path" json:"prefix_tag_key_with_path"`
 	GuessPathTag         bool              `toml:"guess_path_tag" deprecated:"1.30.0;1.35.0;use 'path_guessing_strategy' instead"`
-	GuessPathStrategy    string            `toml:"path_guessing_strategy"`
+	GuessPathStrategy    string            `toml:"path_guessing_strategy" json:"path_guessing_strategy"`
 	EnableTLS            bool              `toml:"enable_tls" deprecated:"1.27.0;1.35.0;use 'tls_enable' instead"`
-	KeepaliveTime        config.Duration   `toml:"keepalive_time"`
-	KeepaliveTimeout     config.Duration   `toml:"keepalive_timeout"`
-	YangModelPaths       []string          `toml:"yang_model_paths"`
-	Log                  telegraf.Logger   `toml:"-"`
+	KeepaliveTime        config.Duration   `toml:"keepalive_time" json:"keepalive_time"`
+	KeepaliveTimeout     config.Duration   `toml:"keepalive_timeout" json:"keepalive_timeout"`
+	YangModelPaths       []string          `toml:"yang_model_paths" json:"yang_model_paths"`
 	common_tls.ClientConfig
+
+	Log telegraf.Logger `toml:"-"`
 
 	// Internal state
 	internalAliases map[*pathInfo]string
 	decoder         *yangmodel.Decoder
-	cancel          context.CancelFunc
-	wg              sync.WaitGroup
+}
+
+type ConfigInjector struct {
+	Type string `toml:"type"` // Type of the injector, e.g., "fileInjector", "apiInjector"
+	Path string `toml:"path"` // Path to the config file (only used for fileInjectors)
+}
+
+type GNMI struct {
+	SharedConfig
+	ConfigInjector `toml:"config_injector"`
+
+	// Internal state
+	cancel context.CancelFunc
+	wg     sync.WaitGroup
+
+	// internal runtime config injection
+	injectorSerivce ConfigInjectorService
+	injectedConfigs []SharedConfig
+}
+
+type ConfigInjectorService interface {
+	init(log telegraf.Logger) error
+	GetConfigs(addresses []string) ([]SharedConfig, error)
+	GetTags(address string) (map[string]string, error)
 }
 
 type subscription struct {
-	Name              string          `toml:"name"`
-	Origin            string          `toml:"origin"`
-	Path              string          `toml:"path"`
-	SubscriptionMode  string          `toml:"subscription_mode"`
-	SampleInterval    config.Duration `toml:"sample_interval"`
-	SuppressRedundant bool            `toml:"suppress_redundant"`
-	HeartbeatInterval config.Duration `toml:"heartbeat_interval"`
+	Name              string          `toml:"name" json:"name"`
+	Origin            string          `toml:"origin" json:"origin"`
+	Path              string          `toml:"path" json:"path"`
+	SubscriptionMode  string          `toml:"subscription_mode" json:"subscription_mode"`
+	SampleInterval    config.Duration `toml:"sample_interval" json:"sample_interval"`
+	SuppressRedundant bool            `toml:"suppress_redundant" json:"suppress_redundant"`
+	HeartbeatInterval config.Duration `toml:"heartbeat_interval" json:"heartbeat_interval"`
 	TagOnly           bool            `toml:"tag_only" deprecated:"1.25.0;1.35.0;please use 'tag_subscription's instead"`
 
 	fullPath *gnmi.Path
@@ -89,16 +112,31 @@ type subscription struct {
 
 type tagSubscription struct {
 	subscription
-	Match    string   `toml:"match"`
-	Elements []string `toml:"elements"`
+	Match    string   `toml:"match" json:"match"`
+	Elements []string `toml:"elements" json:"elements"`
+}
+
+func (gnmi *GNMI) InitializeInjector() error {
+	// Check the injector type and set the corresponding service
+	switch gnmi.ConfigInjector.Type {
+	case "fileInjector":
+		gnmi.injectorSerivce = &FileConfigInjector{FilePath: gnmi.ConfigInjector.Path}
+
+	default:
+		return fmt.Errorf("unknown config injector type: %s", gnmi.ConfigInjector.Type)
+	}
+	err := gnmi.injectorSerivce.init(gnmi.Log)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (*GNMI) SampleConfig() string {
 	return sampleConfig
 }
 
-func (c *GNMI) Init() error {
-	// Check options
+func initializeInput(c *SharedConfig) error {
 	if time.Duration(c.Redial) <= 0 {
 		return errors.New("redial duration must be positive")
 	}
@@ -232,9 +270,35 @@ func (c *GNMI) Init() error {
 	return nil
 }
 
-func (c *GNMI) Start(acc telegraf.Accumulator) error {
+func (c *GNMI) Init() error {
+	// Check options
+	if c.ConfigInjector.Type != "" {
+		c.Log.Infof("using config injector: [%v] ", c.ConfigInjector.Type)
+		if err := c.InitializeInjector(); err != nil {
+			return err
+		}
+		var err error
+		c.injectedConfigs, err = c.injectorSerivce.GetConfigs(c.Addresses)
+		if err != nil {
+			return err
+		}
+		for _, config := range c.injectedConfigs {
+			if err := initializeInput(&config); err != nil {
+				return err
+			}
+		}
+	} else {
+
+		return initializeInput(&c.SharedConfig)
+	}
+
+	return nil
+}
+
+func (g *GNMI) SubscribeConfig(acc telegraf.Accumulator, c *SharedConfig, ci ConfigInjectorService) error {
+
 	// Validate configuration
-	request, err := c.newSubscribeRequest()
+	request, err := g.newSubscribeRequest(c)
 	if err != nil {
 		return err
 	}
@@ -247,7 +311,7 @@ func (c *GNMI) Start(acc telegraf.Accumulator) error {
 
 	// Prepare the context, optionally with credentials
 	var ctx context.Context
-	ctx, c.cancel = context.WithCancel(context.Background())
+	ctx, g.cancel = context.WithCancel(context.Background())
 
 	if !c.Username.Empty() {
 		usernameSecret, err := c.Username.Get()
@@ -268,10 +332,10 @@ func (c *GNMI) Start(acc telegraf.Accumulator) error {
 	}
 
 	// Create a goroutine for each device, dial and subscribe
-	c.wg.Add(len(c.Addresses))
+	g.wg.Add(len(c.Addresses))
 	for _, addr := range c.Addresses {
 		go func(addr string) {
-			defer c.wg.Done()
+			defer g.wg.Done()
 
 			host, port, err := net.SplitHostPort(addr)
 			if err != nil {
@@ -298,6 +362,7 @@ func (c *GNMI) Start(acc telegraf.Accumulator) error {
 					Timeout:             time.Duration(c.KeepaliveTimeout),
 					PermitWithoutStream: false,
 				},
+				configInjSrv: ci,
 			}
 			for ctx.Err() == nil {
 				if err := h.subscribeGNMI(ctx, acc, tlscfg, request); err != nil && ctx.Err() == nil {
@@ -311,6 +376,24 @@ func (c *GNMI) Start(acc telegraf.Accumulator) error {
 			}
 		}(addr)
 	}
+
+	return nil
+
+}
+
+func (c *GNMI) Start(acc telegraf.Accumulator) error {
+
+	if c.ConfigInjector.Type != "" {
+		for _, config := range c.injectedConfigs {
+			if err := c.SubscribeConfig(acc, &config, c.injectorSerivce); err != nil {
+				return err
+			}
+		}
+
+	} else {
+		return c.SubscribeConfig(acc, &c.SharedConfig, c.injectorSerivce)
+	}
+
 	return nil
 }
 
@@ -342,7 +425,7 @@ func (s *subscription) buildSubscription() (*gnmi.Subscription, error) {
 }
 
 // Create a new gNMI SubscribeRequest
-func (c *GNMI) newSubscribeRequest() (*gnmi.SubscribeRequest, error) {
+func (g *GNMI) newSubscribeRequest(c *SharedConfig) (*gnmi.SubscribeRequest, error) {
 	// Create subscription objects
 	subscriptions := make([]*gnmi.Subscription, 0, len(c.Subscriptions)+len(c.TagSubscriptions))
 	for _, subscription := range c.TagSubscriptions {
@@ -400,7 +483,7 @@ func parsePath(origin, pathToParse, target string) (*gnmi.Path, error) {
 	return gnmiPath, err
 }
 
-func (s *subscription) buildFullPath(c *GNMI) error {
+func (s *subscription) buildFullPath(c *SharedConfig) error {
 	var err error
 	if s.fullPath, err = xpath.ToGNMIPath(s.Path); err != nil {
 		return err
@@ -441,8 +524,9 @@ func (s *subscription) buildAlias(aliases map[*pathInfo]string) error {
 
 func newGNMI() telegraf.Input {
 	return &GNMI{
-		Encoding: "proto",
-		Redial:   config.Duration(10 * time.Second),
+		SharedConfig: SharedConfig{
+			Encoding: "proto",
+			Redial:   config.Duration(10 * time.Second)},
 	}
 }
 

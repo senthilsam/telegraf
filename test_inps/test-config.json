@@ -1,0 +1,230 @@
+{
+  "shared_subscriptions": {
+    "subscriptions": {
+      "sub1": [
+        {
+          "id": "sub1",
+          "name": "interface_stats",
+          "origin": "openconfig",
+          "path": "/interfaces/interface/state",
+          "subscription_mode": "ON_CHANGE",
+          "sample_interval": "5s",
+          "suppress_redundant": true,
+          "heartbeat_interval": "30s",
+          "tag_only": false
+        }
+      ],
+      "sub2": [
+        {
+          "id": "sub2",
+          "name": "bgp_routes",
+          "origin": "openconfig",
+          "path": "/bgp/routes",
+          "subscription_mode": "SAMPLE",
+          "sample_interval": "10s",
+          "suppress_redundant": false,
+          "heartbeat_interval": "1m",
+          "tag_only": false
+        }
+      ]
+    },
+    "tag_subscriptions": {
+      "tag1": [
+        {
+          "id": "tag1",
+          "name": "interface_tags",
+          "origin": "openconfig",
+          "path": "/interfaces/interface/state",
+          "subscription_mode": "SAMPLE",
+          "sample_interval": "10s",
+          "suppress_redundant": false,
+          "heartbeat_interval": "1m",
+          "tag_only": false,
+          "match": "interface-stats",
+          "elements": [
+            "interface",
+            "state"
+          ]
+        }
+      ],
+      "tag2": [
+        {
+          "id": "tag2",
+          "name": "bgp_tags",
+          "origin": "openconfig",
+          "path": "/bgp/state",
+          "subscription_mode": "ON_CHANGE",
+          "sample_interval": "15s",
+          "suppress_redundant": true,
+          "heartbeat_interval": "2m",
+          "tag_only": false,
+          "match": "bgp-stats",
+          "elements": [
+            "bgp",
+            "state"
+          ]
+        }
+      ]
+    }
+  },
+  "shared_common_configs": {
+    "common1": {
+      "id": "common1",
+      "encoding": "JSON",
+      "origin": "openconfig",
+      "prefix": "/network",
+      "target": "router1",
+      "updates_only": false,
+      "vendor_specific": [
+        "vendor_option1",
+        "vendor_option2"
+      ],
+      "username": "admin",
+      "password": "password123",
+      "redial": "30s",
+      "max_msg_size": "4MB",
+      "trace": true,
+      "canonical_field_names": false,
+      "trim_field_names": true,
+      "prefix_tag_key_with_path": true,
+      "guess_path_tag": false,
+      "guess_path_strategy": "default",
+      "enable_tls": true,
+      "keepalive_time": "60s",
+      "keepalive_timeout": "30s",
+      "yang_model_paths": [
+        "/models/openconfig",
+        "/models/vendor"
+      ],
+      "client_config": {
+        "tls_version": "TLS1.2",
+        "verify_peer": "true"
+      },
+      "aliases": {
+        "alias1": "value1",
+        "alias2": "value2"
+      }
+    },
+    "common2": {
+      "id": "common2",
+      "encoding": "PROTOBUF",
+      "origin": "vendor_origin",
+      "prefix": "/data",
+      "target": "device2",
+      "updates_only": true,
+      "vendor_specific": [
+        "vendor_option3"
+      ],
+      "username": "user2",
+      "password": "securepass",
+      "redial": "10s",
+      "max_msg_size": "8MB",
+      "trace": false,
+      "canonical_field_names": true,
+      "trim_field_names": false,
+      "prefix_tag_key_with_path": false,
+      "guess_path_tag": true,
+      "guess_path_strategy": "aggressive",
+      "enable_tls": false,
+      "keepalive_time": "30s",
+      "keepalive_timeout": "10s",
+      "yang_model_paths": [
+        "/models/vendor"
+      ],
+      "client_config": {
+        "tls_version": "TLS1.3",
+        "verify_peer": "false"
+      }
+    }
+  },
+  "shared_tags": {
+    "group1": {
+      "node_type": "a",
+      "ppod": "1"
+    },
+    "group2": {
+      "node_type": "b",
+      "ppod": "2"
+    }
+  },
+  "devices": [
+    {
+      "device_id": "device1",
+      "address": "192.168.1.1",
+      "subscriptions": [
+        "sub1"
+      ],
+      "tag_subscriptions": [
+        "tag1"
+      ],
+      "common_config": "common1",
+      "shared_tag_group": [
+        "group1"
+      ],
+      "tags": {
+        "device_name": "device1",
+        "a": "value1",
+        "b": "value2"
+      }
+    },
+    {
+      "device_id": "device2",
+      "address": "192.168.1.2",
+      "subscriptions": [
+        "sub1",
+        "sub2"
+      ],
+      "tag_subscriptions": [
+        "tag1",
+        "tag2"
+      ],
+      "common_config": "common2",
+      "shared_tag_group": [
+        "group2"
+      ],
+      "tags": {
+        "device_name": "device2",
+        "c": "value3",
+        "d": "value4"
+      }
+    },
+    {
+      "device_id": "device3",
+      "address": "192.168.1.3",
+      "subscriptions": [
+        "sub1"
+      ],
+      "tag_subscriptions": [
+        "tag1"
+      ],
+      "common_config": "common1",
+      "shared_tag_group": [
+        "group1",
+        "group2"
+      ],
+      "tags": {
+        "device_name": "device3",
+        "e": "value5"
+      }
+    },
+    {
+      "device_id": "device4",
+      "address": "192.168.1.4",
+      "subscriptions": [
+        "sub1",
+        "sub2"
+      ],
+      "tag_subscriptions": [
+        "tag2"
+      ],
+      "common_config": "common2",
+      "shared_tag_group": [
+        "group2"
+      ],
+      "tags": {
+        "device_name": "device4",
+        "f": "value6"
+      }
+    }
+  ]
+}
