@@ -283,8 +283,9 @@ func (c *GNMI) Init() error {
 		if err != nil {
 			return err
 		}
-		for _, config := range c.injectedConfigs {
-			if err := initializeInput(&config); err != nil {
+		for i := range c.injectedConfigs {
+			config := &c.injectedConfigs[i]
+			if err := initializeInput(config); err != nil {
 				return err
 			}
 		}

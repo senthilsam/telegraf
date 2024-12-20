@@ -251,15 +251,15 @@ func main() {
 	var wg sync.WaitGroup
 
 	// Hostnames simulation (localhost, localhost1, localhost2, ...)
-	hostnames := []string{
-		"localhost1", "localhost2", "localhost3", "localhost4",
-		"localhost5", "localhost6", "localhost7", "localhost8", "localhost9",
-	}
+	// hostnames := []string{
+	// 	"localhost1", "localhost2", "localhost3", "localhost4",
+	// 	"localhost5", "localhost6", "localhost7", "localhost8", "localhost9",
+	// }
 
 	// Start 10 servers in parallel (on different hostnames and ports)
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 9; i++ {
 		wg.Add(1)
-		go startServer(hostnames[i], 10161+i, &wg) // Running servers on different hostnames and ports
+		go startServer("localhost", 10161+i, &wg) // Running servers on different hostnames and ports
 	}
 
 	// Wait for all servers to finish (though this will run indefinitely)

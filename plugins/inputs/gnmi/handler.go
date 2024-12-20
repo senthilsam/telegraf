@@ -229,7 +229,7 @@ func (h *handler) handleSubscribeResponseUpdate(acc telegraf.Accumulator, respon
 		fieldTags := field.path.tags(h.tagPathPrefix)
 		var tags map[string]string
 		if h.configInjSrv != nil {
-			dt, err := h.configInjSrv.GetTags(h.host)
+			dt, err := h.configInjSrv.GetTags(fmt.Sprintf("%s:%s", h.host, h.port))
 
 			if err == nil {
 				tags = make(map[string]string, len(headerTags)+len(fieldTags)+len(dt))

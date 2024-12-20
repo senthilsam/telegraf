@@ -1,0 +1,179 @@
+{
+  "shared_subscriptions": {
+    "subscriptions": {
+      "sub1": [
+        {
+          "id": "i1",
+          "name": "interface_ifcounters",
+          "origin": "openconfig-interfaces",
+          "path": "/interfaces/interface/",
+          "subscription_mode": "sample",
+          "sample_interval": "10s"
+        },
+        {
+            "id": "i2",
+            "name": "system",
+            "path": "/system/state/hostname",
+            "subscription_mode": "sample",
+            "sample_interval": "10s"
+        },
+        {
+        "id": "i3",
+        "name": "alarm",
+        "path": "/alarm/state",
+        "subscription_mode": "sample",
+        "sample_interval": "10s"
+        }
+      ],
+      "sub2": [
+        {
+            "id": "i3",
+            "name": "hardware",
+            "path": "/hardware/model",
+            "subscription_mode": "sample",
+            "sample_interval": "10s"
+            }
+      ]
+    },
+    "tag_subscriptions": {
+      "tag1": [
+        {
+          "id": "tag1",
+          "name": "interface_stats",
+          "origin": "openconfig-interfaces",
+          "path": "/interfaces/interface/",
+          "subscription_mode": "sample",
+          "sample_interval": "10s",
+          "elements": [
+            "interface",
+            "state"
+          ]
+        }
+        ]
+    }
+  },
+  "shared_common_configs": {
+    "common1": {
+      "id": "common1",
+      "encoding" : "proto",
+      "redial": "10s"
+    }
+  },
+  "shared_tags": {
+    "group1": {
+      "node_type": "test-node",
+      "ppod": "fakeppod"
+    },
+    "group2": {
+      "node_type": "test-node2",
+      "ppod": "fake-ppod2"
+    }
+  },
+  "devices": [
+    {
+      "device_id": "device1",
+      "address": "127.0.0.1:10161",
+      "subscriptions": [
+        "sub1"
+      ],
+      "common_config": "common1",
+      "shared_tag_group": [
+        "group1"
+      ],
+      "tags": {
+        "device_name": "device1",
+        "vendor": "test-vendor1"
+      }
+    },
+    {
+        "device_id": "device2",
+        "address": "127.0.0.1:10162",
+        "subscriptions": [
+          "sub1"
+        ],
+        "common_config": "common1",
+        "shared_tag_group": [
+          "group1"
+        ],
+        "tags": {
+          "device_name": "device2",
+          "vendor": "test-vendor1"
+        }
+      },
+      {
+        "device_id": "device3",
+        "address": "127.0.0.1:10163",
+        "subscriptions": [
+          "sub1"
+        ],
+        "common_config": "common1",
+        "shared_tag_group": [
+          "group1"
+        ],
+        "tags": {
+          "device_name": "device3",
+          "vendor": "test-vendor1"
+        }
+      },
+      {
+        "device_id": "device4",
+        "address": "127.0.0.1:10164",
+        "subscriptions": [
+          "sub1"
+        ],
+        "common_config": "common1",
+        "shared_tag_group": [
+          "group1"
+        ],
+        "tags": {
+          "device_name": "device4",
+          "vendor": "test-vendor2"
+        }
+      },
+      {
+        "device_id": "device5",
+        "address": "127.0.0.1:10165",
+        "subscriptions": [
+          "sub1"
+        ],
+        "common_config": "common1",
+        "shared_tag_group": [
+          "group1"
+        ],
+        "tags": {
+          "device_name": "device5",
+          "vendor": "test-vendor5"
+        }
+      },
+      {
+        "device_id": "device6",
+        "address": "127.0.0.1:10166",
+        "subscriptions": [
+          "sub1"
+        ],
+        "common_config": "common1",
+        "shared_tag_group": [
+          "group1"
+        ],
+        "tags": {
+          "device_name": "device6",
+          "vendor": "test-vendor6"
+        }
+      },
+      {
+        "device_id": "device7",
+        "address": "127.0.0.1:10167",
+        "subscriptions": [
+          "sub1", "sub2"
+        ],
+        "common_config": "common1",
+        "shared_tag_group": [
+          "group1"
+        ],
+        "tags": {
+          "device_name": "device7",
+          "vendor": "test-vendor7"
+        }
+      }
+  ]
+}

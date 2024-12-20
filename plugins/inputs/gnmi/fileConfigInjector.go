@@ -122,6 +122,7 @@ func (f *FileConfigInjector) groupDevices(d *InputData, targets []string) ([]Sha
 				}
 			}
 
+			thisConfig.Log = f.Log
 			groupMap[key] = &thisConfig
 		}
 
@@ -143,7 +144,7 @@ func (f *FileConfigInjector) groupDevices(d *InputData, targets []string) ([]Sha
 		groups = append(groups, *group)
 		counter++
 	}
-	f.Log.Info("Total grouped configs", len(groups))
+	f.Log.Info("Total grouped configs: ", counter-1)
 	return groups, tagMap
 }
 
@@ -170,8 +171,8 @@ func (f *FileConfigInjector) init(addresses []string, log telegraf.Logger) error
 	f.deviceTags = tg
 	f.collectorConfigs = groups
 
-	fmt.Printf("config: %v", f.deviceTags)
-	fmt.Printf("config: %v", groups)
+	// fmt.Printf("config: %v", f.deviceTags)
+	// fmt.Printf("config: %v", groups)
 
 	return nil
 }
