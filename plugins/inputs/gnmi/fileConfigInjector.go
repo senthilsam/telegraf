@@ -78,16 +78,25 @@ func loadJSONFromFile(filePath string, i *InputData) error {
 	return nil
 }
 
-func (f *FileConfigInjector) groupDevices(d *InputData) ([]SharedConfig, map[string]*DeviceTag) {
+func (f *FileConfigInjector) groupDevices(d *InputData, targets []string) ([]SharedConfig, map[string]*DeviceTag) {
 	groupMap := make(map[string]*SharedConfig)
 	tagMap := make(map[string]*DeviceTag)
 
-	// Iterate through devices to group them
+	targetsMap := make(map[string]bool)
+	for _, target := range targets {
+		targetsMap[target] = true
+	}
+
 	for _, device := range d.Devices {
+
+		if _, exists := targetsMap[device.Address]; !exists {
+			// not my current target
+			continue
+		}
 		// Create a key for grouping by subscriptions, common_config, and tag_subscriptions
 		key := fmt.Sprintf("%v|%v|%v", device.Subscriptions, device.SharedConfig, device.TagSubscriptions)
 
-		// If the group doesn't exist, create a new group entry
+		// create if needed
 		if _, exists := groupMap[key]; !exists {
 			thisConfig := d.SharedCommonConfigs[device.SharedConfig]
 
@@ -127,15 +136,19 @@ func (f *FileConfigInjector) groupDevices(d *InputData) ([]SharedConfig, map[str
 	}
 
 	var groups []SharedConfig
+	counter := 1
 	for _, group := range groupMap {
-		groups = append(groups, *group)
-	}
 
+		f.Log.Infof("group%d Targets count: %d", counter, len(group.Addresses))
+		groups = append(groups, *group)
+		counter++
+	}
+	f.Log.Info("Total grouped configs", len(groups))
 	return groups, tagMap
 }
 
 // GetConfigs reads configuration data from a file and returns a slice of sharedConfig
-func (f *FileConfigInjector) GetConfigs(addresses []string) ([]SharedConfig, error) {
+func (f *FileConfigInjector) GetConfigs() ([]SharedConfig, error) {
 	if f.collectorConfigs == nil {
 		return nil, fmt.Errorf("gnmi collector configs are not initialized")
 	}
@@ -143,7 +156,7 @@ func (f *FileConfigInjector) GetConfigs(addresses []string) ([]SharedConfig, err
 	return f.collectorConfigs, nil
 }
 
-func (f *FileConfigInjector) init(log telegraf.Logger) error {
+func (f *FileConfigInjector) init(addresses []string, log telegraf.Logger) error {
 
 	// Simulate loading configs from a file (you can replace this with actual file reading logic)
 	fmt.Println("Loading config from file:", f.FilePath)
@@ -153,7 +166,7 @@ func (f *FileConfigInjector) init(log telegraf.Logger) error {
 	}
 	f.Log = log
 	f.sharedTags = c.SharedTags
-	groups, tg := f.groupDevices(&c)
+	groups, tg := f.groupDevices(&c, addresses)
 	f.deviceTags = tg
 	f.collectorConfigs = groups
 

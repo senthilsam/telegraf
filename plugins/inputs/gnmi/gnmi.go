@@ -71,6 +71,8 @@ type SharedConfig struct {
 	// Internal state
 	internalAliases map[*pathInfo]string
 	decoder         *yangmodel.Decoder
+
+	cancel context.CancelFunc
 }
 
 type ConfigInjector struct {
@@ -82,18 +84,17 @@ type GNMI struct {
 	SharedConfig
 	ConfigInjector `toml:"config_injector"`
 
-	// Internal state
-	cancel context.CancelFunc
-	wg     sync.WaitGroup
-
 	// internal runtime config injection
 	injectorSerivce ConfigInjectorService
 	injectedConfigs []SharedConfig
+
+	// Internal state
+	wg sync.WaitGroup
 }
 
 type ConfigInjectorService interface {
-	init(log telegraf.Logger) error
-	GetConfigs(addresses []string) ([]SharedConfig, error)
+	init(addresses []string, log telegraf.Logger) error
+	GetConfigs() ([]SharedConfig, error)
 	GetTags(address string) (map[string]string, error)
 }
 
@@ -125,7 +126,7 @@ func (gnmi *GNMI) InitializeInjector() error {
 	default:
 		return fmt.Errorf("unknown config injector type: %s", gnmi.ConfigInjector.Type)
 	}
-	err := gnmi.injectorSerivce.init(gnmi.Log)
+	err := gnmi.injectorSerivce.init(gnmi.Addresses, gnmi.Log)
 	if err != nil {
 		return err
 	}
@@ -278,7 +279,7 @@ func (c *GNMI) Init() error {
 			return err
 		}
 		var err error
-		c.injectedConfigs, err = c.injectorSerivce.GetConfigs(c.Addresses)
+		c.injectedConfigs, err = c.injectorSerivce.GetConfigs()
 		if err != nil {
 			return err
 		}
@@ -311,7 +312,7 @@ func (g *GNMI) SubscribeConfig(acc telegraf.Accumulator, c *SharedConfig, ci Con
 
 	// Prepare the context, optionally with credentials
 	var ctx context.Context
-	ctx, g.cancel = context.WithCancel(context.Background())
+	ctx, c.cancel = context.WithCancel(context.Background())
 
 	if !c.Username.Empty() {
 		usernameSecret, err := c.Username.Get()
@@ -402,7 +403,14 @@ func (*GNMI) Gather(telegraf.Accumulator) error {
 }
 
 func (c *GNMI) Stop() {
-	c.cancel()
+	if c.injectorSerivce == nil {
+		c.cancel()
+	} else {
+		for _, cfg := range c.injectedConfigs {
+			cfg.cancel()
+		}
+
+	}
 	c.wg.Wait()
 }
 
