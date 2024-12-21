@@ -153,11 +153,13 @@ func flatten(nested interface{}) []keyValuePair {
 			}
 		}
 		if allNonNested {
-			var strArray []string
-			for _, v := range n {
-				strArray = append(strArray, fmt.Sprintf("%v", v))
-			}
-			values = append(values, keyValuePair{value: fmt.Sprintf("[%s]", strings.Join(strArray, ", "))})
+			// var strArray []string
+			// for _, v := range n {
+			// 	strArray = append(strArray, fmt.Sprintf("%v", v))
+			// }
+			// values = append(values, keyValuePair{value: fmt.Sprintf("[%s]", strings.Join(strArray, ", "))})
+			// i will send as it is. it's serializer job to serialize properly
+			values = append(values, keyValuePair{value: n})
 		} else {
 			for i, child := range n {
 				k := strconv.Itoa(i)
