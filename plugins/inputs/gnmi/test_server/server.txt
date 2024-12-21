@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
 	"time"
@@ -66,39 +67,43 @@ func (s *fakeGNMIServer) Subscribe(stream gnmi.GNMI_SubscribeServer) error {
 		default:
 			// Create a notification for each interface eth0 to eth9
 			var updates []*gnmi.Update
-			for i := 0; i < 10; i++ {
-				// Create path for eth0 to eth9 interfaces
-				interfaceName := fmt.Sprintf("eth%d", i)
-				update := &gnmi.Update{
-					Path: &gnmi.Path{
-						Elem: []*gnmi.PathElem{
-							{Name: "interfaces"},
-							{Name: "interface", Key: map[string]string{"name": interfaceName}},
-						},
-					},
-					Val: &gnmi.TypedValue{
-						Value: &gnmi.TypedValue_IntVal{IntVal: 10}, // Return value 10 for each interface
-					},
-				}
-				updates = append(updates, update)
+			// for i := 0; i < 10; i++ {
+			// 	// Create path for eth0 to eth9 interfaces
+			// 	interfaceName := fmt.Sprintf("eth%d", i)
+			// 	update := &gnmi.Update{
+			// 		Path: &gnmi.Path{
+			// 			Elem: []*gnmi.PathElem{
+			// 				{Name: "interfaces"},
+			// 				{Name: "interface", Key: map[string]string{"name": interfaceName}},
+			// 			},
+			// 		},
+			// 		Val: &gnmi.TypedValue{
+			// 			Value: &gnmi.TypedValue_IntVal{IntVal: 10}, // Return value 10 for each interface
+			// 		},
+			// 	}
+			// 	updates = append(updates, update)
+			// }
+
+			// // Adding updates for additional paths like storage, hardware, and alarm
+			// // Adding Storage path
+			// updates = append(updates, &gnmi.Update{
+			// 	Path: &gnmi.Path{
+			// 		Elem: []*gnmi.PathElem{
+			// 			{Name: "storage"},
+			// 			{Name: "state"},
+			// 			{Name: "capacity"},
+			// 			{Name: "sAvail"},
+			// 		},
+			// 	},
+			// 	Val: &gnmi.TypedValue{
+			// 		Value: &gnmi.TypedValue_StringVal{StringVal: "500GB"}, // Example storage value
+			// 	},
+			// })
+
+			jsonData, err := json.Marshal([]interface{}{42, 77, 19})
+			if err != nil {
+				panic("Failed to marshal JSON: " + err.Error())
 			}
-
-			// Adding updates for additional paths like storage, hardware, and alarm
-			// Adding Storage path
-			updates = append(updates, &gnmi.Update{
-				Path: &gnmi.Path{
-					Elem: []*gnmi.PathElem{
-						{Name: "storage"},
-						{Name: "state"},
-						{Name: "capacity"},
-						{Name: "sAvail"},
-					},
-				},
-				Val: &gnmi.TypedValue{
-					Value: &gnmi.TypedValue_StringVal{StringVal: "500GB"}, // Example storage value
-				},
-			})
-
 			// Adding Hardware path
 			updates = append(updates, &gnmi.Update{
 				Path: &gnmi.Path{
@@ -108,36 +113,189 @@ func (s *fakeGNMIServer) Subscribe(stream gnmi.GNMI_SubscribeServer) error {
 					},
 				},
 				Val: &gnmi.TypedValue{
-					Value: &gnmi.TypedValue_StringVal{StringVal: "model-XYZ"}, // Example hardware model
+					Value: &gnmi.TypedValue_JsonVal{
+						JsonVal: jsonData, // JSON byte slice representing the array
+					},
 				},
 			})
 
+			// 2. []int
+			intArray := []int{10, 20, 30}
+			intJsonData, err := json.Marshal(intArray)
+
+			updates = append(updates, &gnmi.Update{
+				Path: &gnmi.Path{
+					Elem: []*gnmi.PathElem{
+						{Name: "hardware"},
+						{Name: "model"},
+						{Name: "intArray"},
+					},
+				},
+				Val: &gnmi.TypedValue{
+					Value: &gnmi.TypedValue_JsonVal{
+						JsonVal: intJsonData,
+					},
+				},
+			})
+
+			// 3. []float64
+			floatArray := []float64{3.14, 2.718, 1.618}
+			floatJsonData, err := json.Marshal(floatArray)
+
+			updates = append(updates, &gnmi.Update{
+				Path: &gnmi.Path{
+					Elem: []*gnmi.PathElem{
+						{Name: "hardware"},
+						{Name: "model"},
+						{Name: "floatArray"},
+					},
+				},
+				Val: &gnmi.TypedValue{
+					Value: &gnmi.TypedValue_JsonVal{
+						JsonVal: floatJsonData,
+					},
+				},
+			})
+
+			// 4. []string
+			stringArray := []string{"apple", "banana", "cherry"}
+			stringJsonData, err := json.Marshal(stringArray)
+
+			updates = append(updates, &gnmi.Update{
+				Path: &gnmi.Path{
+					Elem: []*gnmi.PathElem{
+						{Name: "hardware"},
+						{Name: "model"},
+						{Name: "stringArray"},
+					},
+				},
+				Val: &gnmi.TypedValue{
+					Value: &gnmi.TypedValue_JsonVal{
+						JsonVal: stringJsonData,
+					},
+				},
+			})
+
+			// 5. []bool
+			boolArray := []bool{true, false, true}
+			boolJsonData, err := json.Marshal(boolArray)
+
+			updates = append(updates, &gnmi.Update{
+				Path: &gnmi.Path{
+					Elem: []*gnmi.PathElem{
+						{Name: "hardware"},
+						{Name: "model"},
+						{Name: "boolArray"},
+					},
+				},
+				Val: &gnmi.TypedValue{
+					Value: &gnmi.TypedValue_JsonVal{
+						JsonVal: boolJsonData,
+					},
+				},
+			})
+
+			// 6. []int64
+			int64Array := []int64{10000000000, 20000000000, 30000000000}
+			int64JsonData, err := json.Marshal(int64Array)
+
+			updates = append(updates, &gnmi.Update{
+				Path: &gnmi.Path{
+					Elem: []*gnmi.PathElem{
+						{Name: "hardware"},
+						{Name: "model"},
+						{Name: "int64Array"},
+					},
+				},
+				Val: &gnmi.TypedValue{
+					Value: &gnmi.TypedValue_JsonVal{
+						JsonVal: int64JsonData,
+					},
+				},
+			})
+
+			// 7. []uint
+			uintArray := []uint{10, 20, 30}
+			uintJsonData, err := json.Marshal(uintArray)
+
+			updates = append(updates, &gnmi.Update{
+				Path: &gnmi.Path{
+					Elem: []*gnmi.PathElem{
+						{Name: "hardware"},
+						{Name: "model"},
+						{Name: "uintArray"},
+					},
+				},
+				Val: &gnmi.TypedValue{
+					Value: &gnmi.TypedValue_JsonVal{
+						JsonVal: uintJsonData,
+					},
+				},
+			})
+
+			// 8. []uint64
+			uint64Array := []uint64{100, 200, 300}
+			uint64JsonData, err := json.Marshal(uint64Array)
+
+			updates = append(updates, &gnmi.Update{
+				Path: &gnmi.Path{
+					Elem: []*gnmi.PathElem{
+						{Name: "hardware"},
+						{Name: "model"},
+						{Name: "uint64Array"},
+					},
+				},
+				Val: &gnmi.TypedValue{
+					Value: &gnmi.TypedValue_JsonVal{
+						JsonVal: uint64JsonData,
+					},
+				},
+			})
+
+			// 9. []float32
+			float32Array := []float32{1.23, 4.56, 7.89}
+			float32JsonData, err := json.Marshal(float32Array)
+
+			updates = append(updates, &gnmi.Update{
+				Path: &gnmi.Path{
+					Elem: []*gnmi.PathElem{
+						{Name: "hardware"},
+						{Name: "model"},
+						{Name: "float32Array"},
+					},
+				},
+				Val: &gnmi.TypedValue{
+					Value: &gnmi.TypedValue_JsonVal{
+						JsonVal: float32JsonData,
+					},
+				},
+			})
 			// Adding Alarm path
-			updates = append(updates, &gnmi.Update{
-				Path: &gnmi.Path{
-					Elem: []*gnmi.PathElem{
-						{Name: "alarm"},
-						{Name: "state"},
-						{Name: "active"},
-					},
-				},
-				Val: &gnmi.TypedValue{
-					Value: &gnmi.TypedValue_StringVal{StringVal: "No Alarms"}, // Example alarm status
-				},
-			})
+			// updates = append(updates, &gnmi.Update{
+			// 	Path: &gnmi.Path{
+			// 		Elem: []*gnmi.PathElem{
+			// 			{Name: "alarm"},
+			// 			{Name: "state"},
+			// 			{Name: "active"},
+			// 		},
+			// 	},
+			// 	Val: &gnmi.TypedValue{
+			// 		Value: &gnmi.TypedValue_StringVal{StringVal: "No Alarms"}, // Example alarm status
+			// 	},
+			// })
 
-			updates = append(updates, &gnmi.Update{
-				Path: &gnmi.Path{
-					Elem: []*gnmi.PathElem{
-						{Name: "system"},
-						{Name: "state"},
-						{Name: "hostname"},
-					},
-				},
-				Val: &gnmi.TypedValue{
-					Value: &gnmi.TypedValue_StringVal{StringVal: "fake_server1"}, // Example alarm status
-				},
-			})
+			// updates = append(updates, &gnmi.Update{
+			// 	Path: &gnmi.Path{
+			// 		Elem: []*gnmi.PathElem{
+			// 			{Name: "system"},
+			// 			{Name: "state"},
+			// 			{Name: "hostname"},
+			// 		},
+			// 	},
+			// 	Val: &gnmi.TypedValue{
+			// 		Value: &gnmi.TypedValue_StringVal{StringVal: "fake_server1"}, // Example alarm status
+			// 	},
+			// })
 
 			// Create a notification with all updates
 			notification := &gnmi.Notification{
