@@ -104,8 +104,10 @@ var tsc = &testSNMPConnection{
 
 func TestSnmpInit(t *testing.T) {
 	s := &Snmp{
-		ClientConfig: snmp.ClientConfig{
-			Translator: "netsnmp",
+		SharedConfig: SharedConfig{
+			ClientConfig: snmp.ClientConfig{
+				Translator: "netsnmp",
+			},
 		},
 	}
 
@@ -114,21 +116,23 @@ func TestSnmpInit(t *testing.T) {
 
 func TestSnmpInit_noTranslate(t *testing.T) {
 	s := &Snmp{
-		Fields: []snmp.Field{
-			{Oid: ".1.1.1.1", Name: "one", IsTag: true},
-			{Oid: ".1.1.1.2", Name: "two"},
-			{Oid: ".1.1.1.3"},
-		},
-		Tables: []snmp.Table{
-			{Name: "testing",
-				Fields: []snmp.Field{
-					{Oid: ".1.1.1.4", Name: "four", IsTag: true},
-					{Oid: ".1.1.1.5", Name: "five"},
-					{Oid: ".1.1.1.6"},
-				}},
-		},
-		ClientConfig: snmp.ClientConfig{
-			Translator: "netsnmp",
+		SharedConfig: SharedConfig{
+			Fields: []snmp.Field{
+				{Oid: ".1.1.1.1", Name: "one", IsTag: true},
+				{Oid: ".1.1.1.2", Name: "two"},
+				{Oid: ".1.1.1.3"},
+			},
+			Tables: []snmp.Table{
+				{Name: "testing",
+					Fields: []snmp.Field{
+						{Oid: ".1.1.1.4", Name: "four", IsTag: true},
+						{Oid: ".1.1.1.5", Name: "five"},
+						{Oid: ".1.1.1.6"},
+					}},
+			},
+			ClientConfig: snmp.ClientConfig{
+				Translator: "netsnmp",
+			},
 		},
 		Log: testutil.Logger{Name: "inputs.snmp"},
 	}
@@ -163,12 +167,14 @@ func TestSnmpInit_noTranslate(t *testing.T) {
 
 func TestSnmpInit_noName_noOid(t *testing.T) {
 	s := &Snmp{
-		Tables: []snmp.Table{
-			{Fields: []snmp.Field{
-				{Oid: ".1.1.1.4", Name: "four", IsTag: true},
-				{Oid: ".1.1.1.5", Name: "five"},
-				{Oid: ".1.1.1.6"},
-			}},
+		SharedConfig: SharedConfig{
+			Tables: []snmp.Table{
+				{Fields: []snmp.Field{
+					{Oid: ".1.1.1.4", Name: "four", IsTag: true},
+					{Oid: ".1.1.1.5", Name: "five"},
+					{Oid: ".1.1.1.6"},
+				}},
+			},
 		},
 	}
 
@@ -177,13 +183,15 @@ func TestSnmpInit_noName_noOid(t *testing.T) {
 
 func TestGetSNMPConnection_v2(t *testing.T) {
 	s := &Snmp{
-		Agents: []string{"1.2.3.4:567", "1.2.3.4", "udp://127.0.0.1"},
-		ClientConfig: snmp.ClientConfig{
-			Timeout:    config.Duration(3 * time.Second),
-			Retries:    4,
-			Version:    2,
-			Community:  "foo",
-			Translator: "netsnmp",
+		SharedConfig: SharedConfig{
+			Agents: []string{"1.2.3.4:567", "1.2.3.4", "udp://127.0.0.1"},
+			ClientConfig: snmp.ClientConfig{
+				Timeout:    config.Duration(3 * time.Second),
+				Retries:    4,
+				Version:    2,
+				Community:  "foo",
+				Translator: "netsnmp",
+			},
 		},
 	}
 	require.NoError(t, s.Init())
@@ -221,9 +229,11 @@ func TestGetSNMPConnectionTCP(t *testing.T) {
 	defer tcpServer.Close()
 
 	s := &Snmp{
-		Agents: []string{fmt.Sprintf("tcp://%s", tcpServer.Addr())},
-		ClientConfig: snmp.ClientConfig{
-			Translator: "netsnmp",
+		SharedConfig: SharedConfig{
+			Agents: []string{fmt.Sprintf("tcp://%s", tcpServer.Addr())},
+			ClientConfig: snmp.ClientConfig{
+				Translator: "netsnmp",
+			},
 		},
 	}
 	require.NoError(t, s.Init())
@@ -237,21 +247,23 @@ func TestGetSNMPConnectionTCP(t *testing.T) {
 
 func TestGetSNMPConnection_v3(t *testing.T) {
 	s := &Snmp{
-		Agents: []string{"1.2.3.4"},
-		ClientConfig: snmp.ClientConfig{
-			Version:        3,
-			MaxRepetitions: 20,
-			ContextName:    "mycontext",
-			SecLevel:       "authPriv",
-			SecName:        "myuser",
-			AuthProtocol:   "md5",
-			AuthPassword:   config.NewSecret([]byte("password123")),
-			PrivProtocol:   "des",
-			PrivPassword:   config.NewSecret([]byte("321drowssap")),
-			EngineID:       "myengineid",
-			EngineBoots:    1,
-			EngineTime:     2,
-			Translator:     "netsnmp",
+		SharedConfig: SharedConfig{
+			Agents: []string{"1.2.3.4"},
+			ClientConfig: snmp.ClientConfig{
+				Version:        3,
+				MaxRepetitions: 20,
+				ContextName:    "mycontext",
+				SecLevel:       "authPriv",
+				SecName:        "myuser",
+				AuthProtocol:   "md5",
+				AuthPassword:   config.NewSecret([]byte("password123")),
+				PrivProtocol:   "des",
+				PrivPassword:   config.NewSecret([]byte("321drowssap")),
+				EngineID:       "myengineid",
+				EngineBoots:    1,
+				EngineTime:     2,
+				Translator:     "netsnmp",
+			},
 		},
 	}
 	err := s.Init()
@@ -286,21 +298,23 @@ func TestGetSNMPConnection_v3_blumenthal(t *testing.T) {
 			Name:      "AES192",
 			Algorithm: gosnmp.AES192,
 			Config: &Snmp{
-				Agents: []string{"1.2.3.4"},
-				ClientConfig: snmp.ClientConfig{
-					Version:        3,
-					MaxRepetitions: 20,
-					ContextName:    "mycontext",
-					SecLevel:       "authPriv",
-					SecName:        "myuser",
-					AuthProtocol:   "md5",
-					AuthPassword:   config.NewSecret([]byte("password123")),
-					PrivProtocol:   "AES192",
-					PrivPassword:   config.NewSecret([]byte("password123")),
-					EngineID:       "myengineid",
-					EngineBoots:    1,
-					EngineTime:     2,
-					Translator:     "netsnmp",
+				SharedConfig: SharedConfig{
+					Agents: []string{"1.2.3.4"},
+					ClientConfig: snmp.ClientConfig{
+						Version:        3,
+						MaxRepetitions: 20,
+						ContextName:    "mycontext",
+						SecLevel:       "authPriv",
+						SecName:        "myuser",
+						AuthProtocol:   "md5",
+						AuthPassword:   config.NewSecret([]byte("password123")),
+						PrivProtocol:   "AES192",
+						PrivPassword:   config.NewSecret([]byte("password123")),
+						EngineID:       "myengineid",
+						EngineBoots:    1,
+						EngineTime:     2,
+						Translator:     "netsnmp",
+					},
 				},
 			},
 		},
@@ -308,21 +322,23 @@ func TestGetSNMPConnection_v3_blumenthal(t *testing.T) {
 			Name:      "AES192C",
 			Algorithm: gosnmp.AES192C,
 			Config: &Snmp{
-				Agents: []string{"1.2.3.4"},
-				ClientConfig: snmp.ClientConfig{
-					Version:        3,
-					MaxRepetitions: 20,
-					ContextName:    "mycontext",
-					SecLevel:       "authPriv",
-					SecName:        "myuser",
-					AuthProtocol:   "md5",
-					AuthPassword:   config.NewSecret([]byte("password123")),
-					PrivProtocol:   "AES192C",
-					PrivPassword:   config.NewSecret([]byte("password123")),
-					EngineID:       "myengineid",
-					EngineBoots:    1,
-					EngineTime:     2,
-					Translator:     "netsnmp",
+				SharedConfig: SharedConfig{
+					Agents: []string{"1.2.3.4"},
+					ClientConfig: snmp.ClientConfig{
+						Version:        3,
+						MaxRepetitions: 20,
+						ContextName:    "mycontext",
+						SecLevel:       "authPriv",
+						SecName:        "myuser",
+						AuthProtocol:   "md5",
+						AuthPassword:   config.NewSecret([]byte("password123")),
+						PrivProtocol:   "AES192C",
+						PrivPassword:   config.NewSecret([]byte("password123")),
+						EngineID:       "myengineid",
+						EngineBoots:    1,
+						EngineTime:     2,
+						Translator:     "netsnmp",
+					},
 				},
 			},
 		},
@@ -330,21 +346,23 @@ func TestGetSNMPConnection_v3_blumenthal(t *testing.T) {
 			Name:      "AES256",
 			Algorithm: gosnmp.AES256,
 			Config: &Snmp{
-				Agents: []string{"1.2.3.4"},
-				ClientConfig: snmp.ClientConfig{
-					Version:        3,
-					MaxRepetitions: 20,
-					ContextName:    "mycontext",
-					SecLevel:       "authPriv",
-					SecName:        "myuser",
-					AuthProtocol:   "md5",
-					AuthPassword:   config.NewSecret([]byte("password123")),
-					PrivProtocol:   "AES256",
-					PrivPassword:   config.NewSecret([]byte("password123")),
-					EngineID:       "myengineid",
-					EngineBoots:    1,
-					EngineTime:     2,
-					Translator:     "netsnmp",
+				SharedConfig: SharedConfig{
+					Agents: []string{"1.2.3.4"},
+					ClientConfig: snmp.ClientConfig{
+						Version:        3,
+						MaxRepetitions: 20,
+						ContextName:    "mycontext",
+						SecLevel:       "authPriv",
+						SecName:        "myuser",
+						AuthProtocol:   "md5",
+						AuthPassword:   config.NewSecret([]byte("password123")),
+						PrivProtocol:   "AES256",
+						PrivPassword:   config.NewSecret([]byte("password123")),
+						EngineID:       "myengineid",
+						EngineBoots:    1,
+						EngineTime:     2,
+						Translator:     "netsnmp",
+					},
 				},
 			},
 		},
@@ -352,21 +370,23 @@ func TestGetSNMPConnection_v3_blumenthal(t *testing.T) {
 			Name:      "AES256C",
 			Algorithm: gosnmp.AES256C,
 			Config: &Snmp{
-				Agents: []string{"1.2.3.4"},
-				ClientConfig: snmp.ClientConfig{
-					Version:        3,
-					MaxRepetitions: 20,
-					ContextName:    "mycontext",
-					SecLevel:       "authPriv",
-					SecName:        "myuser",
-					AuthProtocol:   "md5",
-					AuthPassword:   config.NewSecret([]byte("password123")),
-					PrivProtocol:   "AES256C",
-					PrivPassword:   config.NewSecret([]byte("password123")),
-					EngineID:       "myengineid",
-					EngineBoots:    1,
-					EngineTime:     2,
-					Translator:     "netsnmp",
+				SharedConfig: SharedConfig{
+					Agents: []string{"1.2.3.4"},
+					ClientConfig: snmp.ClientConfig{
+						Version:        3,
+						MaxRepetitions: 20,
+						ContextName:    "mycontext",
+						SecLevel:       "authPriv",
+						SecName:        "myuser",
+						AuthProtocol:   "md5",
+						AuthPassword:   config.NewSecret([]byte("password123")),
+						PrivProtocol:   "AES256C",
+						PrivPassword:   config.NewSecret([]byte("password123")),
+						EngineID:       "myengineid",
+						EngineBoots:    1,
+						EngineTime:     2,
+						Translator:     "netsnmp",
+					},
 				},
 			},
 		},
@@ -401,9 +421,11 @@ func TestGetSNMPConnection_v3_blumenthal(t *testing.T) {
 
 func TestGetSNMPConnection_caching(t *testing.T) {
 	s := &Snmp{
-		Agents: []string{"1.2.3.4", "1.2.3.5", "1.2.3.5"},
-		ClientConfig: snmp.ClientConfig{
-			Translator: "netsnmp",
+		SharedConfig: SharedConfig{
+			Agents: []string{"1.2.3.4", "1.2.3.5", "1.2.3.5"},
+			ClientConfig: snmp.ClientConfig{
+				Translator: "netsnmp",
+			},
 		},
 	}
 	err := s.Init()
@@ -529,38 +551,40 @@ func TestGosnmpWrapper_get_retry(t *testing.T) {
 
 func TestGather(t *testing.T) {
 	s := &Snmp{
-		Agents: []string{"TestGather"},
-		Name:   "mytable",
-		Fields: []snmp.Field{
-			{
-				Name:  "myfield1",
-				Oid:   ".1.0.0.1.1",
-				IsTag: true,
+		SharedConfig: SharedConfig{
+			Agents: []string{"TestGather"},
+			Name:   "mytable",
+			Fields: []snmp.Field{
+				{
+					Name:  "myfield1",
+					Oid:   ".1.0.0.1.1",
+					IsTag: true,
+				},
+				{
+					Name: "myfield2",
+					Oid:  ".1.0.0.1.2",
+				},
+				{
+					Name: "myfield3",
+					Oid:  "1.0.0.1.1",
+				},
 			},
-			{
-				Name: "myfield2",
-				Oid:  ".1.0.0.1.2",
-			},
-			{
-				Name: "myfield3",
-				Oid:  "1.0.0.1.1",
-			},
-		},
-		Tables: []snmp.Table{
-			{
-				Name:        "myOtherTable",
-				InheritTags: []string{"myfield1"},
-				Fields: []snmp.Field{
-					{
-						Name: "myOtherField",
-						Oid:  ".1.0.0.0.1.5",
+			Tables: []snmp.Table{
+				{
+					Name:        "myOtherTable",
+					InheritTags: []string{"myfield1"},
+					Fields: []snmp.Field{
+						{
+							Name: "myOtherField",
+							Oid:  ".1.0.0.0.1.5",
+						},
 					},
 				},
 			},
-		},
 
-		connectionCache: []snmp.Connection{
-			tsc,
+			connectionCache: []snmp.Connection{
+				tsc,
+			},
 		},
 	}
 	acc := &testutil.Accumulator{}
@@ -590,22 +614,24 @@ func TestGather(t *testing.T) {
 
 func TestGather_host(t *testing.T) {
 	s := &Snmp{
-		Agents: []string{"TestGather"},
-		Name:   "mytable",
-		Fields: []snmp.Field{
-			{
-				Name:  "host",
-				Oid:   ".1.0.0.1.1",
-				IsTag: true,
+		SharedConfig: SharedConfig{
+			Agents: []string{"TestGather"},
+			Name:   "mytable",
+			Fields: []snmp.Field{
+				{
+					Name:  "host",
+					Oid:   ".1.0.0.1.1",
+					IsTag: true,
+				},
+				{
+					Name: "myfield2",
+					Oid:  ".1.0.0.1.2",
+				},
 			},
-			{
-				Name: "myfield2",
-				Oid:  ".1.0.0.1.2",
-			},
-		},
 
-		connectionCache: []snmp.Connection{
-			tsc,
+			connectionCache: []snmp.Connection{
+				tsc,
+			},
 		},
 	}
 
@@ -623,15 +649,17 @@ func TestSnmpInitGosmi(t *testing.T) {
 	require.NoError(t, err)
 
 	s := &Snmp{
-		Tables: []snmp.Table{
-			{Oid: "RFC1213-MIB::atTable"},
-		},
-		Fields: []snmp.Field{
-			{Oid: "RFC1213-MIB::atPhysAddress"},
-		},
-		ClientConfig: snmp.ClientConfig{
-			Path:       []string{testDataPath},
-			Translator: "gosmi",
+		SharedConfig: SharedConfig{
+			Tables: []snmp.Table{
+				{Oid: "RFC1213-MIB::atTable"},
+			},
+			Fields: []snmp.Field{
+				{Oid: "RFC1213-MIB::atPhysAddress"},
+			},
+			ClientConfig: snmp.ClientConfig{
+				Path:       []string{testDataPath},
+				Translator: "gosmi",
+			},
 		},
 	}
 
@@ -662,21 +690,23 @@ func TestSnmpInitGosmi(t *testing.T) {
 
 func TestSnmpInit_noTranslateGosmi(t *testing.T) {
 	s := &Snmp{
-		Fields: []snmp.Field{
-			{Oid: ".9.1.1.1.1", Name: "one", IsTag: true},
-			{Oid: ".9.1.1.1.2", Name: "two"},
-			{Oid: ".9.1.1.1.3"},
-		},
-		Tables: []snmp.Table{
-			{Name: "testing",
-				Fields: []snmp.Field{
-					{Oid: ".9.1.1.1.4", Name: "four", IsTag: true},
-					{Oid: ".9.1.1.1.5", Name: "five"},
-					{Oid: ".9.1.1.1.6"},
-				}},
-		},
-		ClientConfig: snmp.ClientConfig{
-			Translator: "gosmi",
+		SharedConfig: SharedConfig{
+			Fields: []snmp.Field{
+				{Oid: ".9.1.1.1.1", Name: "one", IsTag: true},
+				{Oid: ".9.1.1.1.2", Name: "two"},
+				{Oid: ".9.1.1.1.3"},
+			},
+			Tables: []snmp.Table{
+				{Name: "testing",
+					Fields: []snmp.Field{
+						{Oid: ".9.1.1.1.4", Name: "four", IsTag: true},
+						{Oid: ".9.1.1.1.5", Name: "five"},
+						{Oid: ".9.1.1.1.6"},
+					}},
+			},
+			ClientConfig: snmp.ClientConfig{
+				Translator: "gosmi",
+			},
 		},
 	}
 
@@ -709,40 +739,42 @@ func TestSnmpInit_noTranslateGosmi(t *testing.T) {
 
 func TestGatherGosmi(t *testing.T) {
 	s := &Snmp{
-		Agents: []string{"TestGather"},
-		Name:   "mytable",
-		Fields: []snmp.Field{
-			{
-				Name:  "myfield1",
-				Oid:   ".1.0.0.1.1",
-				IsTag: true,
+		SharedConfig: SharedConfig{
+			Agents: []string{"TestGather"},
+			Name:   "mytable",
+			Fields: []snmp.Field{
+				{
+					Name:  "myfield1",
+					Oid:   ".1.0.0.1.1",
+					IsTag: true,
+				},
+				{
+					Name: "myfield2",
+					Oid:  ".1.0.0.1.2",
+				},
+				{
+					Name: "myfield3",
+					Oid:  "1.0.0.1.1",
+				},
 			},
-			{
-				Name: "myfield2",
-				Oid:  ".1.0.0.1.2",
-			},
-			{
-				Name: "myfield3",
-				Oid:  "1.0.0.1.1",
-			},
-		},
-		Tables: []snmp.Table{
-			{
-				Name:        "myOtherTable",
-				InheritTags: []string{"myfield1"},
-				Fields: []snmp.Field{
-					{
-						Name: "myOtherField",
-						Oid:  ".1.0.0.0.1.5",
+			Tables: []snmp.Table{
+				{
+					Name:        "myOtherTable",
+					InheritTags: []string{"myfield1"},
+					Fields: []snmp.Field{
+						{
+							Name: "myOtherField",
+							Oid:  ".1.0.0.0.1.5",
+						},
 					},
 				},
 			},
-		},
 
-		connectionCache: []snmp.Connection{tsc},
+			connectionCache: []snmp.Connection{tsc},
 
-		ClientConfig: snmp.ClientConfig{
-			Translator: "gosmi",
+			ClientConfig: snmp.ClientConfig{
+				Translator: "gosmi",
+			},
 		},
 	}
 	acc := &testutil.Accumulator{}
@@ -772,21 +804,23 @@ func TestGatherGosmi(t *testing.T) {
 
 func TestGather_hostGosmi(t *testing.T) {
 	s := &Snmp{
-		Agents: []string{"TestGather"},
-		Name:   "mytable",
-		Fields: []snmp.Field{
-			{
-				Name:  "host",
-				Oid:   ".1.0.0.1.1",
-				IsTag: true,
+		SharedConfig: SharedConfig{
+			Agents: []string{"TestGather"},
+			Name:   "mytable",
+			Fields: []snmp.Field{
+				{
+					Name:  "host",
+					Oid:   ".1.0.0.1.1",
+					IsTag: true,
+				},
+				{
+					Name: "myfield2",
+					Oid:  ".1.0.0.1.2",
+				},
 			},
-			{
-				Name: "myfield2",
-				Oid:  ".1.0.0.1.2",
-			},
-		},
 
-		connectionCache: []snmp.Connection{tsc},
+			connectionCache: []snmp.Connection{tsc},
+		},
 	}
 
 	acc := &testutil.Accumulator{}

@@ -21,7 +21,7 @@ type Table struct {
 	IndexAsTag bool
 
 	// Fields is the tags and values to look up.
-	Fields []Field `toml:"field"`
+	Fields []Field `toml:"field" json:"field"`
 
 	// OID for automatic field population.
 	// If provided, init() will populate Fields with all the table columns of the

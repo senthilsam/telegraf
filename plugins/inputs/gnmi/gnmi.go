@@ -66,7 +66,7 @@ type SharedConfig struct {
 	YangModelPaths       []string          `toml:"yang_model_paths" json:"yang_model_paths"`
 	common_tls.ClientConfig
 
-	Log telegraf.Logger `toml:"-"`
+	Log telegraf.Logger `toml:"-" json:"-"`
 
 	// Internal state
 	internalAliases map[*pathInfo]string
@@ -85,7 +85,7 @@ type GNMI struct {
 	ConfigInjector `toml:"config_injector"`
 
 	// internal runtime config injection
-	injectorSerivce ConfigInjectorService
+	injectorService ConfigInjectorService
 	injectedConfigs []SharedConfig
 
 	// Internal state
@@ -121,12 +121,12 @@ func (gnmi *GNMI) InitializeInjector() error {
 	// Check the injector type and set the corresponding service
 	switch gnmi.ConfigInjector.Type {
 	case "fileInjector":
-		gnmi.injectorSerivce = &FileConfigInjector{FilePath: gnmi.ConfigInjector.Path}
+		gnmi.injectorService = &FileConfigInjector{FilePath: gnmi.ConfigInjector.Path}
 
 	default:
 		return fmt.Errorf("unknown config injector type: %s", gnmi.ConfigInjector.Type)
 	}
-	err := gnmi.injectorSerivce.init(gnmi.Addresses, gnmi.Log)
+	err := gnmi.injectorService.init(gnmi.Addresses, gnmi.Log)
 	if err != nil {
 		return err
 	}
@@ -279,7 +279,7 @@ func (c *GNMI) Init() error {
 			return err
 		}
 		var err error
-		c.injectedConfigs, err = c.injectorSerivce.GetConfigs()
+		c.injectedConfigs, err = c.injectorService.GetConfigs()
 		if err != nil {
 			return err
 		}
@@ -386,14 +386,39 @@ func (g *GNMI) SubscribeConfig(acc telegraf.Accumulator, c *SharedConfig, ci Con
 func (c *GNMI) Start(acc telegraf.Accumulator) error {
 
 	if c.ConfigInjector.Type != "" {
+		// for _, config := range c.injectedConfigs {
+		// 	if err := c.SubscribeConfig(acc, &config, c.injectorService); err != nil {
+		// 		return err
+		// 	}
+		// }
+		var wg sync.WaitGroup
+		errChan := make(chan error, 1)
+
 		for _, config := range c.injectedConfigs {
-			if err := c.SubscribeConfig(acc, &config, c.injectorSerivce); err != nil {
-				return err
-			}
+			wg.Add(1)
+			go func(cfg SharedConfig) {
+				defer wg.Done()
+				if err := c.SubscribeConfig(acc, &cfg, c.injectorService); err != nil {
+					select {
+					case errChan <- err:
+					default:
+					}
+				}
+			}(config)
+		}
+
+		go func() {
+			wg.Wait()
+			close(errChan)
+		}()
+
+		// Return the first error received
+		if err, ok := <-errChan; ok {
+			return err
 		}
 
 	} else {
-		return c.SubscribeConfig(acc, &c.SharedConfig, c.injectorSerivce)
+		return c.SubscribeConfig(acc, &c.SharedConfig, c.injectorService)
 	}
 
 	return nil
@@ -404,7 +429,7 @@ func (*GNMI) Gather(telegraf.Accumulator) error {
 }
 
 func (c *GNMI) Stop() {
-	if c.injectorSerivce == nil {
+	if c.injectorService == nil {
 		c.cancel()
 	} else {
 		for _, cfg := range c.injectedConfigs {
